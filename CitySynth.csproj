@@ -1,0 +1,315 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{9F0CC8EA-4DAA-4032-A68E-2EB1AEBC5064}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>CitySynth</RootNamespace>
+    <AssemblyName>CitySynth</AssemblyName>
+    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <PublishUrl>publish\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>false</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>false</MapFileExtensions>
+    <TargetCulture>en-GB</TargetCulture>
+    <ProductName>CitySynth</ProductName>
+    <PublisherName>CityAudio</PublisherName>
+    <SuiteName>CityAudio 2015</SuiteName>
+    <OpenBrowserOnPublish>false</OpenBrowserOnPublish>
+    <ApplicationRevision>1</ApplicationRevision>
+    <ApplicationVersion>3.1.1.%2a</ApplicationVersion>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <CreateDesktopShortcut>true</CreateDesktopShortcut>
+    <PublishWizardCompleted>true</PublishWizardCompleted>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>true</Prefer32Bit>
+    <RunCodeAnalysis>false</RunCodeAnalysis>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>true</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>Resources\ctlogo_Ni9_icon.ico</ApplicationIcon>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ManifestCertificateThumbprint>BEA7896EAF4A81D8CF06E117C407A4749887372D</ManifestCertificateThumbprint>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ManifestKeyFile>CitySynth_TemporaryKey.pfx</ManifestKeyFile>
+  </PropertyGroup>
+  <PropertyGroup>
+    <GenerateManifests>false</GenerateManifests>
+  </PropertyGroup>
+  <PropertyGroup>
+    <TargetZone>LocalIntranet</TargetZone>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignManifests>false</SignManifests>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x86\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <Optimize>false</Optimize>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <Prefer32Bit>true</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
+    <OutputPath>bin\x86\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <Prefer32Bit>true</Prefer32Bit>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="alglibnet2">
+      <HintPath>..\..\..\..\..\Programs\alglib-3.9.0.csharp.gpl\alglibnet2.dll</HintPath>
+    </Reference>
+    <Reference Include="Midi">
+      <HintPath>..\..\..\..\..\Backups and OSs\Creative Backups\Programming\Visual Studio 2013\SynthCS\SynthCS\bin\Debug\Midi.dll</HintPath>
+    </Reference>
+    <Reference Include="NAudio">
+      <HintPath>..\..\..\..\..\Programs\NAudio-1-7-2-Release\NAudio.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Configuration.Install" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Management" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Deployment" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="ButterworthIIR.cs" />
+    <Compile Include="FFTs.cs" />
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="R.cs" />
+    <Compile Include="Settings.cs" />
+    <Compile Include="UI Elements\Dial.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UI Elements\Dial.Designer.cs">
+      <DependentUpon>Dial.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Form1.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Form1.Designer.cs">
+      <DependentUpon>Form1.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="UI Elements\HeaderLabel.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UI Elements\HeaderLabel.Designer.cs">
+      <DependentUpon>HeaderLabel.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI Elements\Indicator.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UI Elements\Indicator.Designer.cs">
+      <DependentUpon>Indicator.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI Elements\Meter.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UI Elements\Meter.Designer.cs">
+      <DependentUpon>Meter.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI Elements\PresetSelector.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UI Elements\PresetSelector.Designer.cs">
+      <DependentUpon>PresetSelector.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI Elements\SquareButton.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UI Elements\SquareButton.Designer.cs">
+      <DependentUpon>SquareButton.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI Elements\Switch.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UI Elements\Switch.Designer.cs">
+      <DependentUpon>Switch.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI Elements\ToggleIcon.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="UI Elements\ToggleIcon.Designer.cs">
+      <DependentUpon>ToggleIcon.cs</DependentUpon>
+    </Compile>
+    <Compile Include="WaveProviders.cs" />
+    <EmbeddedResource Include="UI Elements\Dial.resx">
+      <DependentUpon>Dial.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Form1.resx">
+      <DependentUpon>Form1.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <SubType>Designer</SubType>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI Elements\HeaderLabel.resx">
+      <DependentUpon>HeaderLabel.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI Elements\Indicator.resx">
+      <DependentUpon>Indicator.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI Elements\Meter.resx">
+      <DependentUpon>Meter.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI Elements\PresetSelector.resx">
+      <DependentUpon>PresetSelector.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI Elements\SquareButton.resx">
+      <DependentUpon>SquareButton.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI Elements\Switch.resx">
+      <DependentUpon>Switch.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="UI Elements\ToggleIcon.resx">
+      <DependentUpon>ToggleIcon.cs</DependentUpon>
+    </EmbeddedResource>
+    <None Include="Properties\app.manifest" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+    <None Include="Resources\factorypresets.sdp" />
+    <None Include="Resources\Roboto-Thin.ttf" />
+    <None Include="Resources\RobotoCondensed-Regular.ttf" />
+    <None Include="userpresets.sdp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="ct_fileicon_9eh_icon.ico" />
+    <Content Include="Resources\ctlinehorizontal.png" />
+    <Content Include="Resources\ctlogo_Ni9_icon.ico" />
+    <Content Include="Resources\cttouchpadbg.png" />
+    <None Include="Resources\SquareButton\ct_sqbtn.png" />
+    <None Include="Resources\SquareButton\ct_sqbtn_inactive_dwn.png" />
+    <None Include="Resources\SquareButton\ct_sqbtn_inactive.png" />
+    <None Include="Resources\SquareButton\ct_sqbtn_dwn.png" />
+    <Content Include="Resources\Dial\ctdialhoverbg.png" />
+    <Content Include="Resources\Dial\ctdialmarker.png" />
+    <Content Include="Resources\Dial\ctdialround.png" />
+    <Content Include="Resources\Dial\ctdialround_bg.png" />
+    <Content Include="Resources\LED\ctledoff.png" />
+    <Content Include="Resources\LED\ctledon.png" />
+    <Content Include="Resources\LED\ctledon1.png" />
+    <Content Include="Resources\LED\ctledoff1.png" />
+    <Content Include="Resources\Meter\ctdialmeters.png" />
+    <Content Include="Resources\PresetSelector\ctselbar.png" />
+    <Content Include="Resources\PresetSelector\ctselbarbtn.png" />
+    <Content Include="Resources\PresetSelector\ctselbar_arrow_dwn.png" />
+    <Content Include="Resources\PresetSelector\ctselbar_arrow_up.png" />
+    <Content Include="Resources\PresetSelector\ctselddscroll_btm.png" />
+    <Content Include="Resources\PresetSelector\ctselddscroll_mid.png" />
+    <Content Include="Resources\PresetSelector\ctselddscroll_top.png" />
+    <Content Include="Resources\PresetSelector\ctseldropdownbg.png" />
+    <Content Include="Resources\PresetSelector\ctseldropdownscroll.png" />
+    <Content Include="Resources\PresetSelector\ctseldropdownscrollfg.png" />
+    <Content Include="Resources\Reverb\14 Bright Room.wav" />
+    <Content Include="Resources\Reverb\47 Cathedral.wav" />
+    <Content Include="Resources\Switch\ctswitch_bg.png" />
+    <Content Include="Resources\Switch\ctswitch_dyn.png" />
+    <Content Include="Resources\Switch\ct_toggleoff.png" />
+    <Content Include="Resources\Switch\ct_toggleon.png" />
+    <None Include="Resources\ctpreviewboxbg.png" />
+    <Content Include="Resources\ctpreview_sawtooth.png" />
+    <Content Include="Resources\Dial\ct_dialfav.bmp" />
+    <None Include="Resources\Dial\ctsampledial.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <BootstrapperPackage Include=".NETFramework,Version=v4.5">
+      <Visible>False</Visible>
+      <ProductName>Microsoft .NET Framework 4.5 %28x86 and x64%29</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1 Client Profile</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <FileAssociation Include=".sdp">
+      <Visible>False</Visible>
+      <Description>CitySynth Sound Data Package</Description>
+      <Progid>CTSyn</Progid>
+      <DefaultIcon>ct_fileicon_9eh_icon.ico</DefaultIcon>
+    </FileAssociation>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

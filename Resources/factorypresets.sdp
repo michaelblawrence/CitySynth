@@ -1,0 +1,15 @@
+﻿0:Reset:617|a:20.0;d:12.0;r:20.0;s:0.7943282;b:-1;w:0
+1:Just alright:570|a:30.0;d:20.0;r:50.0;s:0.5
+2:Dirty low:666|a:30.0;d:94.0;r:123.0;s:0.86;b:-2;h:7
+3:Toy:691|a:30.0;d:94.0;r:123.0;s:0.86;b:-2;h:1
+4:That Good Good:877|r:63;s:0.630957365;d:64;a:15;w:1;h:7;b:-3;lpf:350;lfo:0
+5:Key West:284|r:28;s:0.64;d:35;a:20;w:1;h:0;b:-2;filter:0
+6:True West:133|r:28;s:0.64;d:35;a:20;w:1;h:0;b:-2
+7:Jabba the Hut:649|r:305;s:0.07;d:38;a:225;r:3;w:2;h:1
+8:Calvin Harris:582|r:205;s:0.07;d:205;a:90.09;w:2;h:1;b:-1
+9:RealSmooth:357|r:63;s:0.630957365;d:64;a:15;w:4;h:7;b:-3;lpf:150;lfo:0
+10:Butter:917|r:63;s:0.630957365;d:64;a:15;w:4;h:7;b:-3;lpf:150;lfo:0;hc:0.8043478;filter:1
+11:Organmaniac:218|r:611;s:1;d:0;a:370;w:1;h:1;b:-2;lpf:2325;lfo:0
+12:Bass Wahs:356|a:20;r:275;s:0.7943;d:12;w:3;b:-4;lpf:1200;lfo:0;la:550;lr:204;lf:80;lc:6410;filter:1;lpfenv:1
+13:Afterburn:828|a:20;d:124.7;s:0.78;r:267.68;w:3;b:-1;lpf:5;lfo:0;lwidth:500;la:124.6;lr:49.84999;lf:13861.7;lc:1054.75;fliter:1;lpfenv:1
+14:Mellow Waves:575|a:20;d:35;s:0.89;r:28;w:2;b:-2;lpf:10502.5;lfo:0.9999996;lwidth:7500;la:5;lr:5;lf:5;lc:21000;prate:11.5;pwidth:0.01;fliter:1;lpfenv:0;
