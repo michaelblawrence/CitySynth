@@ -1,4 +1,5 @@
 ﻿using System;
+using CitySynth.State;
 using NAudio.Dsp;
 
 namespace CitySynth

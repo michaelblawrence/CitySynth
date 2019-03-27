@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using CitySynth.Enums;
 using NAudio.Wave;
+using CitySynth.State;
+using CitySynth.Helpers;
 
 namespace CitySynth
 {
@@ -189,7 +192,7 @@ namespace CitySynth
                         }
                     }
                     int[] key = R.ke[oo];
-                    cwps[o].ff = R.KeyToFreq(key != null ? key[0] : 0, cwps[o].afreq);
+                    cwps[o].ff = MidiHelpers.KeyToFreq(key != null ? key[0] : 0, cwps[o].afreq);
 
                     // audio buffer retrieved from voice
                     cwps[o].Read(data, 0, cc);

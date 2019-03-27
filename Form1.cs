@@ -1,21 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
 using System.Data;
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using CitySynth.UI_Elements;
 using NAudio.Wave;
-using NAudio.CoreAudioApi;
-using NAudio.Wave.SampleProviders;
+using CitySynth.State;
 using Midi;
+using CitySynth.Enums;
+using CitySynth.Helpers;
+using CitySynth.Presets;
+using CitySynth.Properties;
 
 namespace CitySynth
 {
@@ -26,9 +25,9 @@ namespace CitySynth
         List<int> calibdata = new List<int>();
         int activekey = -1;
         int firstkey = -1;
-        int DriverIndex = 2; 
+        int DriverIndex = 2;
         int filenameIndex = 0;
-        string rawsets = Encoding.UTF8.GetString(Properties.Resources.factorypresets);
+        string presetsText = Encoding.UTF8.GetString(Resources.factorypresets);
         string rawrec = DateTime.Now.ToLongTimeString() + "\n";
         string presetFilename = null;
         string argsFilename = null;
@@ -41,7 +40,7 @@ namespace CitySynth
         bool defaultReverb = true;
         DateTime flashStarted = DateTime.Now;
         List<InputDevice> devs;
-        Object varyingDial = null;
+        object varyingDial = null;
         double pdB = 0;
 
         int waveform_w, waveform_h;
@@ -57,14 +56,6 @@ namespace CitySynth
 
         public static float[] semitones = new float[12];
         public const int FlashLength = 200;
-        public const int WM_NCLBUTTONDOWN = 0xA1;
-        public const int HT_CAPTION = 0x2;
-
-        [DllImportAttribute("user32.dll")]
-        public static extern int SendMessage(IntPtr hWnd,
-                         int Msg, int wParam, int lParam);
-        [DllImportAttribute("user32.dll")]
-        public static extern bool ReleaseCapture();
         #endregion
         #region init
 
@@ -148,7 +139,7 @@ namespace CitySynth
                     }
                 }
                 catch (Exception ex) { if (!Program.displayNoDialog) MessageBox.Show("Loading Error: " + ex.Message); }
-                
+
             }
 
             //WaveProvider Loading and Playing
@@ -163,7 +154,7 @@ namespace CitySynth
             //MIDI init and device selection
             devs = new List<InputDevice>();
             int mididevs = InputDevice.InstalledDevices.Count;
-            
+
             if (mididevs > 0)
             {
                 foreach (InputDevice id in InputDevice.InstalledDevices)
@@ -176,8 +167,9 @@ namespace CitySynth
 
                     if (dr == System.Windows.Forms.DialogResult.Yes)
                     {
-                        MidiOpen:
-                        try {
+                    MidiOpen:
+                        try
+                        {
                             id.Open();
                             id.NoteOn += InputDevice_NoteOn;
                             id.NoteOff += id_NoteOff;
@@ -218,7 +210,7 @@ namespace CitySynth
         {
             filterCutoffDial.SetLogScale(true);
             filterCutoffDial.SetValueBounds(5, 21000);
-            
+
             delayLengthDial.SetValueBounds(0, 1000 * R.DelayBufferLength / R.SampleRate);
             delayWetDial.SetValueBounds(0, 1.1f);
             pitchRateDial.SetValueBounds(0, 40);
@@ -256,7 +248,7 @@ namespace CitySynth
             int kv = e.KeyValue;
             UpdateCaps();
 
-            float keyPressedFreq = R.KeyToFreq(e.KeyValue);
+            float keyPressedFreq = MidiHelpers.KeyToFreq(e.KeyValue);
 
             if (keyPressedFreq == -1)
             {
@@ -665,7 +657,7 @@ namespace CitySynth
                     }
                     R.keys[kv] = true;
 
-                    if (recnotes) rawrec += String.Format("{0}#{1}#down\n", (DateTime.Now - recStarted).Ticks, st);
+                    if (recnotes) rawrec += string.Format("{0}#{1}#down\n", (DateTime.Now - recStarted).Ticks, st);
 
                     factor = semitones[(R.kb_off + st + 12 * 12) % 12] * (1 + (R.kb_off + st) / 12);
                     R.Frequency = R.BaseFrequency * factor;
@@ -694,7 +686,7 @@ namespace CitySynth
             if (st == activekey)
                 R.Amplitude = 0;
 
-            if (recnotes) rawrec += String.Format("{0}#{1}#up\n", (DateTime.Now - recStarted).Ticks, st);
+            if (recnotes) rawrec += string.Format("{0}#{1}#up\n", (DateTime.Now - recStarted).Ticks, st);
 
             int kv = st + 300;
             R.keys[kv] = false;
@@ -739,7 +731,7 @@ namespace CitySynth
                     delayWetDial.Value = msg.Value / 127f;
                     break;
             }
-            
+
         }
 
         /// <summary>
@@ -754,49 +746,75 @@ namespace CitySynth
         /// <summary>
         /// Called periodically when GUI must redraw
         /// </summary>
-        void OnScreenRefresh(object sender, EventArgs e)
+        private void OnScreenRefresh(object sender, EventArgs e)
         {
             // Update metering levels with RMS audio level from synth engine samples
             double ave = (PolyWaveProvider.meteringSamples.Max() - PolyWaveProvider.meteringSamples.Min()) / (2 * ((double)short.MaxValue));
             double dB = 10 * 0.5 * Math.Log10(Math.Max(ave, Math.Pow(2, -49)));
             dB = Math.Max(dB, -48);
             float meterFloor = 20f;
-            float rmsLevel = (float)((dB + meterFloor) / (meterFloor+3));
+            float rmsLevel = (float)((dB + meterFloor) / (meterFloor + 3));
             float a = 0.8f;
             a *= (rmsLevel - (float)((dB + meterFloor) / (meterFloor + 3)) + 0.4f);
             pdB = dB;
-            if (!Program.displayNoUI) 
-                masterMeter.BothProgress = masterMeter.LeftProgress + a * (rmsLevel - masterMeter.LeftProgress); 
+            if (!Program.displayNoUI)
+                masterMeter.BothProgress = masterMeter.LeftProgress + a * (rmsLevel - masterMeter.LeftProgress);
 
-            // Clear UI for subsequent drawing
-            g.Clear(Color.Transparent);
-
-            // Prepare graphics to draw audio wavefrom 
-            int img_w = waveform_w - 3,
-                img_h = waveform_h - 12;
-            float px = 0, py = 0;
-            int len = PolyWaveProvider.wavDisplaySamples.Length;
-            if (waveformPts == null)
-                waveformPts = new PointF[len];
-            int scaleFactor = 8;
-
-            // Map waveform data to bitmap coordinates
-            for (int i = 0; i < len; i++)
-            {
-                short val = PolyWaveProvider.wavDisplaySamples[i];
-                float y = img_h * scaleFactor / 2 * val / (float)short.MaxValue + waveform_h / 2;
-                float x = 1 + i * (img_w / (float)len);
-                waveformPts[i] = new PointF(x, y);
-                px = x; py = y;
-
-            } 
-
-            // Draw audio waveform
-            g.DrawCurve(Pens.Orange, waveformPts);
-            if (!R.SystemPaused && (!Program.displayNoUI)) 
-                osc1WavePreviewBox.Image = b;
+            DrawWaveformView();
 
             // Flash MIDI indicator on request
+            TryFlashMidiIndicator();
+
+            // Handle synth engine paused state to save energy
+            if (!R.SystemPaused && (DateTime.Now - lastKey).TotalSeconds > R.SystemSleepTime)
+            {
+                if (R.ke.Count == 0 && R.ActiveVoices == 0 && R.SystemState != 2 && !R.keys[(int)Keys.ControlKey])
+                {
+                    uiWait = new System.Threading.Timer(new System.Threading.TimerCallback((s) =>
+                    {
+                        if (R.SystemState == 2)
+                        {
+                            R.SystemPaused = true;
+                            R.SystemState = 1;
+                        }
+                    }), R.SystemPaused, 2000, -1);
+
+                    R.SystemState = 2;
+                }
+            }
+
+            // remap select dials if TOUCH key (Alt) is down
+            if (_enableTouch != enableTouch)
+                UpdateControlsOnTouch(enableTouch);
+            _enableTouch = enableTouch;
+
+            // Allow LFO varying of dial value
+            if (R.SendLFO && R.LFOreturn != -2)
+            {
+                if (varyingDial != null) ((Dial)varyingDial).Value = 0.5f + 0.5f * R.LFOreturn / lfoWidthDial.Maximum;
+                else R.HarmonicPhase = 0.5f + 0.5f * R.LFOreturn / lfoWidthDial.Maximum;
+            }
+            R.LFOreturn = -2;
+        }
+
+        private void UpdateControlsOnTouch(bool enableTouch)
+        {
+            delayHeaderLabel.Text = enableTouch ? "REVERB" : "DELAY";
+            delayWetDial.SetScaledValue(enableTouch ? R.ReverbWet : R.DelayWet, true, true);
+            delayLengthDial.SetScaledValue(enableTouch ? R.ReverbDelay : R.DelayTime, true, true);
+
+            osc1GainDial.Text = enableTouch ? "Drive" : "Gain";
+            osc1GainDial.SetScaledValue(enableTouch ? ((4 * (R.FilterDrive - 1)) - 48) : R.Gain, true, true);
+
+            osc1PhaseDial.Text = enableTouch ? "Pump" : "Phase";
+            osc1PhaseDial.SetScaledValue(enableTouch ? R.FilterFeedback : R.HarmonicPhase, true, true);
+
+            filterHeaderLabel.Text = enableTouch ? "HPF" : "FILTER";
+            filterCutoffDial.SetScaledValue(enableTouch ? R.HPFCutoff : R.LPF, true, true);
+        }
+
+        private void TryFlashMidiIndicator()
+        {
             if (flashPending)
             {
                 DateTime now = DateTime.Now;
@@ -813,51 +831,36 @@ namespace CitySynth
             }
             else if (midiIndicator.Value)
                 midiIndicator.Value = false;
+        }
 
-            // Handle synth engine paused state to save energy
-            if (!R.SystemPaused && (DateTime.Now - lastKey).TotalSeconds > R.SystemSleepTime)
-            { 
-                if (R.ke.Count == 0 && R.ActiveVoices == 0 && R.SystemState != 2 && !R.keys[(int)Keys.ControlKey])
-                {
-                    uiWait = new System.Threading.Timer(new System.Threading.TimerCallback((s) =>
-                    {
-                        if (R.SystemState == 2)
-                        {
-                            R.SystemPaused = true;
-                            R.SystemState = 1;
-                        }
-                    }), R.SystemPaused, 2000, -1);
-                     
-                    R.SystemState = 2;    
-                }
-            }
+        private void DrawWaveformView()
+        {
+            // Clear UI for subsequent drawing
+            g.Clear(Color.Transparent);
 
-            // remap select dials if TOUCH key (Alt) is down
-            if (_enableTouch != enableTouch)
+            // Prepare graphics to draw audio wavefrom 
+            int img_w = waveform_w - 3, img_h = waveform_h - 12;
+            float px = 0, py = 0;
+            int len = PolyWaveProvider.wavDisplaySamples.Length;
+            if (waveformPts == null)
+                waveformPts = new PointF[len];
+            int scaleFactor = 8;
+
+            // Map waveform data to bitmap coordinates
+            for (int i = 0; i < len; i++)
             {
-                delayHeaderLabel.Text = enableTouch ? "REVERB" : "DELAY";
-                delayWetDial.SetScaledValue(enableTouch ? R.ReverbWet : R.DelayWet, true, true);
-                delayLengthDial.SetScaledValue(enableTouch ? R.ReverbDelay : R.DelayTime, true, true);
+                short val = PolyWaveProvider.wavDisplaySamples[i];
+                float y = img_h * scaleFactor / 2 * val / (float)short.MaxValue + waveform_h / 2;
+                float x = 1 + i * (img_w / (float)len);
+                waveformPts[i] = new PointF(x, y);
+                px = x; py = y;
 
-                osc1GainDial.Text = enableTouch ? "Drive" : "Gain";
-                osc1GainDial.SetScaledValue(enableTouch ? ((4 * (R.FilterDrive - 1)) - 48) : R.Gain, true, true);
-
-                osc1PhaseDial.Text = enableTouch ? "Pump" : "Phase";
-                osc1PhaseDial.SetScaledValue(enableTouch ? R.FilterFeedback : R.HarmonicPhase, true, true);
-                
-                filterHeaderLabel.Text = enableTouch ? "HPF" : "FILTER";
-                filterCutoffDial.SetScaledValue(enableTouch ? R.HPFCutoff : R.LPF, true, true);
-                
             }
-            _enableTouch = enableTouch;
 
-            // Allow LFO varying of dial value
-            if (R.SendLFO && R.LFOreturn != -2)
-            {
-                if (varyingDial != null) ((Dial)varyingDial).Value = 0.5f + 0.5f * R.LFOreturn / lfoWidthDial.Maximum;
-                else R.HarmonicPhase = 0.5f + 0.5f * R.LFOreturn / lfoWidthDial.Maximum;
-            }
-            R.LFOreturn = -2;
+            // Draw audio waveform
+            g.DrawCurve(Pens.Orange, waveformPts);
+            if (!R.SystemPaused && (!Program.displayNoUI))
+                osc1WavePreviewBox.Image = b;
         }
 
         /// <summary>
@@ -866,179 +869,154 @@ namespace CitySynth
         private void presetSelector_SelectedIndexChanged(object sender, EventArgs e)
         {
             // Clean up input lines
-            int index = presetSelector.SelectedIndex;
-            string line = rawsets.Replace("\r", "").Trim().Split('\n')
-                .Where(s => { return !(s.StartsWith("//") || s.Trim() == ""); }).ToArray()
-            [index].Trim().TrimEnd(';').Trim();
-            string[] whole = line.Trim().Split('|');
+            var (presetName, presetStoreLine) = CityPreset.GetNthLine(presetsText, presetSelector.SelectedIndex);
 
             // Resets controls and associated global values to default value for continuity
-            touchPad_DoubleClick(sender, e);
-            foreach (CitySynth.UI_Elements.Dial di
-                in panel1.Controls.OfType<CitySynth.UI_Elements.Dial>())
-                if (di.Name != masterLevelDial.Name)
-                    di.ResetToDefault();
-            foreach (CitySynth.UI_Elements.ToggleIcon ti
-                in panel1.Controls.OfType<CitySynth.UI_Elements.ToggleIcon>())
-                ti.ResetToDefault();
-            R.ReverbWet = defaultReverb ? 0.32f : 0;
-            R.HarmonicFunction = WaveFuntion.sin;
+            ResetUiControls();
+
+            var preset = new CityPreset(presetName, presetStoreLine);
 
             // Iterates through saved non-default parameters editing UI controls and underlying associated global values
-            foreach (string data in whole[1].Split(';'))
+            foreach (var command in preset.Commands)
             {
-                string[] half = data.Split(':');
-                float i = -1;
-                if (half.Length != 2) continue;
-                if (!float.TryParse(half[1], out i)) continue; // parse value into var i
-                switch (half[0]) // switched key
-                {
-                    case "a": // Attack
-                        ampAttackDial.SetScaledValue(i);
-                        break;
-                    case "d": // Decay
-                        ampDecayDial.SetScaledValue(i);
-                        break;
-                    case "s": // Sustain
-                        ampSustainDial.SetScaledValue(i);
-                        break;
-                    case "r": // Release
-                        ampReleaseDial.SetScaledValue(i);
-                        break;
-                    case "b": // Octave Shift
-                        R.BaseFrequency = 440 * (float)Math.Pow(2, i);
-                        break;
-                    case "h": // Harmonic count for DCO
-                        R.MaxHarmonic = (int)i;
-                        break;
-                    case "hw": // Wavefunction for added harmonics
-                        R.HarmonicFunction = (WaveFuntion)i;
-                        break;
-                    case "hp": // Phase shift for harmonics
-                        osc1PhaseDial.SetScaledValue(i);
-                        break;
-                    case "h2": // Harmonics gain
-                        R.Harmonic2Gain = i;
-                        break;
-                    case "sub": // Sub oscillator gain
-                        R.SubOscGain = i;
-                        break;
-                    case "hv1": // Harmonic generation algoritm selector
-                        R.HarmonicV1 = Convert.ToBoolean((int)i);
-                        break;
-                    case "g": // Synth voice gain
-                        R.Gain = i;
-                        R.GeneralAtten = (float)Math.Pow(10, R.Gain / 10.0f);
-                        break;
-                    case "w": // Wavefunction for main DCO
-                        osc1WaveSelDial.Value = i / osc1WaveSelDial.SnapSegments;
-                        break;
-                    case "hpf": // High pass filter (HPF) cutoff frequency
-                        if (!enableTouch) R.HPFCutoff = i;
-                        else filterCutoffDial.SetScaledValue(i);
-                        break;
-                    case "lpf": // Low pass filter (LPF) cutoff frequency
-                        if (!enableTouch) filterCutoffDial.SetScaledValue(i);
-                        else R.LPF = i;
-                        break;
-                    case "lfo": // LPF low frequency oscillator (LFO) rate
-                        lfoRateDial.SetScaledValue(i);
-                        break;
-                    case "lwidth": // LPF low frequency oscillator (LFO) width
-                        lfoWidthDial.SetScaledValue(i);
-                        break;
-                    case "prate": // Pitch LFO rate
-                        pitchRateDial.SetScaledValue(i);
-                        break;
-                    case "pwidth": // Pitch LFO width
-                        pitchWidthDial.SetScaledValue(i);
-                        break;
-                    case "arate": // Amplitude LFO rate
-                        ampLfoRateDial.SetScaledValue(i);
-                        break;
-                    case "awidth": // Amplitude LFO width
-                        ampLfoWidthDial.SetScaledValue(i);
-                        break;
-                    case "delay": // Delay FX time
-                        delayLengthDial.SetScaledValue(i);
-                        break;
-                    case "dwet": // Delay FX wet level
-                        delayWetDial.SetScaledValue(i);
-                        break;
-                    case "rwet": // Reverb FX wet level
-                        R.ReverbWet = i;
-                        break;
-                    case "hc": // Added harmonic level balance control
-                        R.HarmonicsControl = i;
-                        break;
-                    case "ffb": // Filter feedback level
-                        R.FilterFeedback = i;
-                        break;
-                    case "fd": // Filter drive level
-                        R.FilterDrive = i;
-                        break;
-                    case "filter": // LPF FFT algotirm enabled
-                        fftFilterToggle.Checked = i != 0;
-                        if (fftFilterToggle.Checked) R.FFTMode = (int)i;
-                        break;
-                    case "lpfenv": // LPF cuttoff EG enabled
-                        envActivateButton.Checked = i == 1;
-                        break;
-                    case "la": // LPF cuttoff EG attack
-                        envAttackDial.SetScaledValue(i);
-                        break;
-                    case "lr": // LPF cuttoff EG release
-                        envReleaseDial.SetScaledValue(i);
-                        break;
-                    case "lf": // LPF cuttoff EG floor frequency
-                        envFloorDial.SetScaledValue(i);
-                        break;
-                    case "lc": // LPF cuttoff EG ceiling frequency
-                        envCeilingDial.SetScaledValue(i);
-                        break;
-                }
+                if (!command.CommandValue.HasValue)
+                    continue;
+                HandlePresetCommand(command.CommandType, command.CommandValue.Value, enableTouch);
             }
         }
-        
+
+        private void HandlePresetCommand(string commandType, float i, bool touchEnabled)
+        {
+            switch (commandType) // switched key
+            {
+                case "a": // Attack
+                    ampAttackDial.SetScaledValue(i);
+                    break;
+                case "d": // Decay
+                    ampDecayDial.SetScaledValue(i);
+                    break;
+                case "s": // Sustain
+                    ampSustainDial.SetScaledValue(i);
+                    break;
+                case "r": // Release
+                    ampReleaseDial.SetScaledValue(i);
+                    break;
+                case "b": // Octave Shift
+                    R.BaseFrequency = 440 * (float)Math.Pow(2, i);
+                    break;
+                case "h": // Harmonic count for DCO
+                    R.MaxHarmonic = (int)i;
+                    break;
+                case "hw": // Wavefunction for added harmonics
+                    R.HarmonicFunction = (WaveFuntion)i;
+                    break;
+                case "hp": // Phase shift for harmonics
+                    osc1PhaseDial.SetScaledValue(i);
+                    break;
+                case "h2": // Harmonics gain
+                    R.Harmonic2Gain = i;
+                    break;
+                case "sub": // Sub oscillator gain
+                    R.SubOscGain = i;
+                    break;
+                case "hv1": // Harmonic generation algoritm selector
+                    R.HarmonicV1 = Convert.ToBoolean((int)i);
+                    break;
+                case "g": // Synth voice gain
+                    R.Gain = i;
+                    R.GeneralAtten = (float)Math.Pow(10, R.Gain / 10.0f);
+                    break;
+                case "w": // Wavefunction for main DCO
+                    osc1WaveSelDial.Value = i / osc1WaveSelDial.SnapSegments;
+                    break;
+                case "hpf": // High pass filter (HPF) cutoff frequency
+                    if (!touchEnabled) R.HPFCutoff = i;
+                    else filterCutoffDial.SetScaledValue(i);
+                    break;
+                case "lpf": // Low pass filter (LPF) cutoff frequency
+                    if (!touchEnabled) filterCutoffDial.SetScaledValue(i);
+                    else R.LPF = i;
+                    break;
+                case "lfo": // LPF low frequency oscillator (LFO) rate
+                    lfoRateDial.SetScaledValue(i);
+                    break;
+                case "lwidth": // LPF low frequency oscillator (LFO) width
+                    lfoWidthDial.SetScaledValue(i);
+                    break;
+                case "prate": // Pitch LFO rate
+                    pitchRateDial.SetScaledValue(i);
+                    break;
+                case "pwidth": // Pitch LFO width
+                    pitchWidthDial.SetScaledValue(i);
+                    break;
+                case "arate": // Amplitude LFO rate
+                    ampLfoRateDial.SetScaledValue(i);
+                    break;
+                case "awidth": // Amplitude LFO width
+                    ampLfoWidthDial.SetScaledValue(i);
+                    break;
+                case "delay": // Delay FX time
+                    delayLengthDial.SetScaledValue(i);
+                    break;
+                case "dwet": // Delay FX wet level
+                    delayWetDial.SetScaledValue(i);
+                    break;
+                case "rwet": // Reverb FX wet level
+                    R.ReverbWet = i;
+                    break;
+                case "hc": // Added harmonic level balance control
+                    R.HarmonicsControl = i;
+                    break;
+                case "ffb": // Filter feedback level
+                    R.FilterFeedback = i;
+                    break;
+                case "fd": // Filter drive level
+                    R.FilterDrive = i;
+                    break;
+                case "filter": // LPF FFT algotirm enabled
+                    fftFilterToggle.Checked = i != 0;
+                    if (fftFilterToggle.Checked) R.FFTMode = (int)i;
+                    break;
+                case "lpfenv": // LPF cuttoff EG enabled
+                    envActivateButton.Checked = i == 1;
+                    break;
+                case "la": // LPF cuttoff EG attack
+                    envAttackDial.SetScaledValue(i);
+                    break;
+                case "lr": // LPF cuttoff EG release
+                    envReleaseDial.SetScaledValue(i);
+                    break;
+                case "lf": // LPF cuttoff EG floor frequency
+                    envFloorDial.SetScaledValue(i);
+                    break;
+                case "lc": // LPF cuttoff EG ceiling frequency
+                    envCeilingDial.SetScaledValue(i);
+                    break;
+            }
+        }
+
+        private void ResetUiControls()
+        {
+            touchPad_DoubleClick(this, new EventArgs());
+            foreach (Dial di in panel1.Controls.OfType<Dial>())
+            {
+                if (di.Name != masterLevelDial.Name) di.ResetToDefault();
+            }
+            foreach (ToggleIcon ti in panel1.Controls.OfType<ToggleIcon>())
+            {
+                ti.ResetToDefault();
+            }
+            R.ReverbWet = defaultReverb ? 0.32f : 0;
+            R.HarmonicFunction = WaveFuntion.sin;
+        }
+
         #region Utils
 
-        /// <summary>
-        /// Links a Dial control's value to an output variable value.
-        /// </summary>
-        /// <param name="variable">Scaled output variable.</param>
-        /// <param name="sender">Dial control object.</param>
-        public static void LinkVar(out float variable, object sender)
-        {
-            variable = ((CitySynth.UI_Elements.Dial)sender).GetScaledValue();
-        }
-        /// <summary>
-        /// Type of Toggle control class
-        /// </summary>
-        private static Type Toggle = new CitySynth.UI_Elements.ToggleIcon().GetType();
-
-        /// <summary>
-        /// Links a Toggle Icon control's value to an output variable value.
-        /// </summary>
-        /// <param name="variable">Boolean output variable.</param>
-        /// <param name="sender">Toggle Icon control object.</param>
-        public static void LinkVar(out bool variable, object sender)
-        {
-            if (sender.GetType() == Toggle)
-                variable = ((CitySynth.UI_Elements.ToggleIcon)sender).Checked;
-            else
-                variable = false;
-        }
-
-        [DllImport("user32.dll")]
-        static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
-        void UpdateCaps()
+        private void UpdateCaps()
         {
             if (IsKeyLocked(Keys.CapsLock))
             {
-                const int KEYEVENTF_EXTENDEDKEY = 0x1;
-                const int KEYEVENTF_KEYUP = 0x2;
-                keybd_event(0x14, 0x45, KEYEVENTF_EXTENDEDKEY, (UIntPtr)0);
-                keybd_event(0x14, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, (UIntPtr)0);
+                MouseKeyboardEvents.UnlockCapsLock();
             }
         }
 
@@ -1106,7 +1084,6 @@ namespace CitySynth
             wout.Dispose();
         }
 
-
         /// <summary>
         /// Loads preset data from file.
         /// </summary>
@@ -1126,19 +1103,19 @@ namespace CitySynth
         /// <param name="writeToRaw">If set to <c>true</c> writes to local store.</param>
         private string LoadFromFile(string filename, int loadIndex, bool writeToRaw)
         {
-            string s = null;
+            string fileContents = null;
             if (File.Exists(filename))
             {
-                s = File.ReadAllText(filename, Encoding.UTF8);
-                rawsets = rawsets.Trim().TrimEnd(';') + ";\n";
+                fileContents = File.ReadAllText(filename, Encoding.UTF8);
+                presetsText = presetsText.Trim().TrimEnd(';') + ";\n";
                 if (writeToRaw)
-                    rawsets += s;
+                    presetsText += fileContents;
             }
             if (writeToRaw)
-                s = LoadPresets(rawsets, loadIndex);
+                fileContents = LoadPresets(presetsText, loadIndex);
             else
-                s = LoadPresets(s, loadIndex);
-            return s;
+                fileContents = LoadPresets(fileContents, loadIndex);
+            return fileContents;
         }
 
         /// <summary>
@@ -1151,21 +1128,23 @@ namespace CitySynth
         {
             string raw = "";
 
-            string[] lines = input.Replace('\r', '\n').Trim().Split('\n')
-                .Where<string>(s => { return !(s.StartsWith("//") || s.Trim() == ""); }).ToArray<string>();
-            if (rawsets == input)
-                presetSelector.Items.Clear();
-            List<string> ids = new List<string>();
-            Random r = new Random(DateTime.Now.Millisecond);
+            var lines = input
+                .Replace('\r', '\n')
+                .Trim()
+                .Split('\n')
+                .Where(s => { return !(s.StartsWith("//") || s.Trim() == ""); })
+                .ToArray();
+
+            if (presetsText == input) presetSelector.Items.Clear();
+
+            var ids = new List<string>();
             for (int i = 0; i < lines.Length; i++)
             {
                 string line = lines[i].Trim();
                 if (line.Length == 0) continue;
                 string main = line.Split('|')[1];
                 string[] s = line.Split('|')[0].Split(':');
-                string p = s[0];
-                string name = s[1];
-                string iden = s[2];
+                var (p, name, iden) = (s[0], s[1], s[2]);
 
                 string id = s[2] + "|" + s[1];
                 if (!ids.Contains(id))
@@ -1173,12 +1152,12 @@ namespace CitySynth
                     ids.Add(id);
                     string presetName = s[1];
                     int index = presetSelector.Items.Count;
-                    presetSelector.Items.Add(String.Format("({0:000}) {1}", index, presetName));
-                    raw += String.Format("{0}:{1}:{3}|{2}\n", index, name, main, iden);
+                    raw += $"{index}:{name}:{iden}|{main}\n";
+                    presetSelector.Items.Add($"({index:000}) {presetName}");
                 }
             }
-            if (rawsets == input)
-                rawsets = raw;
+            if (presetsText == input)
+                presetsText = raw;
             if (selectedIndex != -1)
                 presetSelector.SelectedIndex = selectedIndex;
             presetSelector_SelectedIndexChanged(presetSelector, new EventArgs());
@@ -1190,32 +1169,117 @@ namespace CitySynth
         /// </summary>
         private void SavePreset()
         {
-            string dialogPresetName;
-            DialogResult dr= ShowSavePresetDialog(out dialogPresetName);
+            DialogResult dr = ShowSavePresetDialog(out var dialogPresetName);
 
-            if (dr == System.Windows.Forms.DialogResult.OK && dialogPresetName != "")
+            if (dr == DialogResult.OK && dialogPresetName != "")
             {
-                string s = CurrentPresetToString(dialogPresetName, presetSelector.Items.Count);
-                StreamWriter sw = null;
-                if (presetFilename == null)
+                string presetBlob = CurrentPresetToString(dialogPresetName, presetSelector.Items.Count);
+                var presetFilename = Application.LocalUserAppDataPath.TrimEnd('\\') + "\\" + "userpresets.sdp";
+                using (StreamWriter sw = presetFilename == null ? File.CreateText(presetFilename) : File.AppendText(presetFilename))
                 {
-                    presetFilename = Application.LocalUserAppDataPath.TrimEnd('\\') + "\\" + "userpresets.sdp";
-                    sw = File.CreateText(presetFilename);
+                    sw.WriteLine(presetBlob.TrimEnd(';'));
                 }
-                else sw = File.AppendText(presetFilename);
-                sw.WriteLine(s.TrimEnd(';'));
-                sw.Flush();
-                sw.Close();
+                presetsText += "\n" + presetBlob;
 
-                rawsets += "\n" + s;
-
-                int i = presetSelector.Items.Count;
-
-                LoadPresets(rawsets, i);
+                LoadPresets(presetsText, presetSelector.Items.Count);
             }
-
         }
 
+        /// <summary>
+        /// Converts the current preset to CitySynth preset format string.
+        /// </summary>
+        /// <returns>CitySynth preset format string.</returns>
+        /// <param name="presetName">Preset name.</param>
+        /// <param name="index">Preset index.</param>
+        private string CurrentPresetToString(string presetName, int index)
+        {
+            string name = presetName.Replace(':', ' ').Replace('|', ' ');
+            int iden = new Random(DateTime.Now.Millisecond).Next(1023);
+
+            string s = index + ":" + name + ":" + iden + "|";
+            s += "a:" + R.Attack + ";";
+            s += "d:" + R.Decay + ";";
+            s += "s:" + R.Sustain + ";";
+            s += "r:" + R.Release + ";";
+            s += "h:" + R.MaxHarmonic + ";";
+            s += "hc:" + R.HarmonicsControl + ";";
+            s += "hp:" + R.HarmonicPhase + ";";
+            s += "w:" + (int)R.WFunction + ";";
+            s += "hw:" + (int)R.HarmonicFunction + ";";
+            s += "b:" + Math.Log(R.BaseFrequency / 440, 2) + ";";
+            s += "hpf:" + R.HPFCutoff + ";";
+            s += "lpf:" + R.LPF + ";";
+            s += "lfo:" + R.LPFmodrate + ";";
+            s += "prate:" + R.Pitchmod + ";";
+            s += "pwidth:" + R.Pitchmodwidth + ";";
+            s += "arate:" + R.AmpLFOrate + ";";
+            s += "awidth:" + R.AmpLFOwidth + ";";
+            s += "lwidth:" + R.LPFwidth + ";";
+            s += "la:" + R.LPFattack + ";";
+            s += "lr:" + R.LPFrelease + ";";
+            s += "lf:" + R.LPFfloor + ";";
+            s += "lc:" + R.LPFceiling + ";";
+            s += "delay:" + R.DelayTime + ";";
+            s += "dwet:" + R.DelayWet + ";";
+            s += "rwet:" + R.ReverbWet + ";";
+            s += "ffb:" + R.FilterFeedback + ";";
+            s += "fd:" + R.FilterDrive + ";";
+            s += "filter:" + (R.FFTEnable ? R.FFTMode : 0) + ";";
+            s += "lpfenv:" + (R.LPFenvelope ? 1 : 0) + ";";
+            if (R.Harmonic2Gain != 0)
+                s += "h2:" + R.Harmonic2Gain + ";";
+            if (R.SubOscGain != 0)
+                s += "sub:" + R.SubOscGain + ";";
+            if (!osc1GainDial.Inactive)
+                s += "g:" + R.Gain + ";";
+            if (!R.HarmonicV1)
+                s += "hv1:" + Convert.ToInt16(R.HarmonicV1) + ";";
+
+            return s;
+        }
+
+        private static void OpenPresetPackSaveDialog(byte[] bytes)
+        {
+            var save = new SaveFileDialog
+            {
+                Filter = "CitySynth PresetPack (*.spdx)|*.spdx",
+                FileName = "PresetPack_" + Environment.UserName + "_" + DateTime.Now.ToShortDateString().Replace('/', '-')
+            };
+            var dr = save.ShowDialog();
+            if (dr == DialogResult.OK)
+            {
+                using (FileStream fs = File.Create(save.FileName))
+                {
+                    fs.Write(bytes, 0, bytes.Length);
+                }
+            }
+            save.Dispose();
+        }
+
+
+        private void SoftResetState()
+        {
+            if (touchPadEnableToggle.Checked) touchPadEnableToggle.Checked = false;
+            enableTouch = false;
+            R.HarmonicsControl = 1;
+            R.Harmonic2Gain = 0;
+            R.FilterFeedback = 0;
+            R.FilterDrive = 1;
+            R.HPFCutoff = 0;
+            R.HarmonicFunction = WaveFuntion.sin;
+            R.MaxHarmonic = 5;
+            R.SubOscGain = 0;
+            R.FFTMode = 1;
+            R.HarmonicV1 = true;
+            masterLevelDial.SetScaledValue(10 * (float)Math.Log10(R.MasterLevel));
+
+            if (devs != null && devs.Count == 0)
+                R.BaseFrequency = 220;
+            else
+                R.BaseFrequency = 22.5f / 2;
+            R.kb_off = 3;
+            if (touchPadEnableToggle.Checked) touchPadEnableToggle.Checked = false;
+        }
         /// <summary>
         /// Shows the saving preset name dialog.
         /// </summary>
@@ -1284,154 +1348,42 @@ namespace CitySynth
 
             return dr;
         }
-
-        /// <summary>
-        /// Converts the current preset to CitySynth preset format string.
-        /// </summary>
-        /// <returns>CitySynth preset format string.</returns>
-        /// <param name="presetName">Preset name.</param>
-        /// <param name="index">Preset index.</param>
-        private string CurrentPresetToString(string presetName, int index)
-        {
-            string name = presetName.Replace(':', ' ').Replace('|', ' ');
-            int iden = new Random(DateTime.Now.Millisecond).Next(1023);
-
-            string s = index + ":" + name + ":" + iden + "|";
-            s += "a:" + R.Attack + ";";
-            s += "d:" + R.Decay + ";";
-            s += "s:" + R.Sustain + ";";
-            s += "r:" + R.Release + ";";
-            s += "h:" + R.MaxHarmonic + ";";
-            s += "hc:" + R.HarmonicsControl + ";";
-            s += "hp:" + R.HarmonicPhase + ";";
-            s += "w:" + (int)R.WFunction + ";";
-            s += "hw:" + (int)R.HarmonicFunction + ";";
-            s += "b:" + Math.Log(R.BaseFrequency / 440, 2) + ";";
-            s += "hpf:" + R.HPFCutoff + ";";
-            s += "lpf:" + R.LPF + ";";
-            s += "lfo:" + R.LPFmodrate + ";";
-            s += "prate:" + R.Pitchmod + ";";
-            s += "pwidth:" + R.Pitchmodwidth + ";";
-            s += "arate:" + R.AmpLFOrate + ";";
-            s += "awidth:" + R.AmpLFOwidth + ";";
-            s += "lwidth:" + R.LPFwidth + ";";
-            s += "la:" + R.LPFattack + ";";
-            s += "lr:" + R.LPFrelease + ";";
-            s += "lf:" + R.LPFfloor + ";";
-            s += "lc:" + R.LPFceiling + ";";
-            s += "delay:" + R.DelayTime + ";";
-            s += "dwet:" + R.DelayWet + ";";
-            s += "rwet:" + R.ReverbWet + ";";
-            s += "ffb:" + R.FilterFeedback + ";";
-            s += "fd:" + R.FilterDrive + ";";
-            s += "filter:" + (R.FFTEnable ? R.FFTMode : 0) + ";";
-            s += "lpfenv:" + (R.LPFenvelope ? 1 : 0) + ";";
-            if (R.Harmonic2Gain != 0)
-                s += "h2:" + R.Harmonic2Gain + ";";
-            if (R.SubOscGain != 0)
-                s += "sub:" + R.SubOscGain + ";";
-            if (!osc1GainDial.Inactive)
-                s += "g:" + R.Gain + ";";
-            if (!R.HarmonicV1)
-                s += "hv1:" + Convert.ToInt16(R.HarmonicV1) + ";";
-
-            return s;
-        }
-
-        /// <summary>
-        /// Exports the preset pack in packaged form for sharing. Experimental.
-        /// </summary>
-        private void ExportPresetPack()
-        {
-            string[] orr = Encoding.UTF8.GetString(CitySynth.Properties.Resources.factorypresets).Split('\n')
-                .ToList().ConvertAll<string>(s => s.Trim()).ToArray();
-            string[] raws = rawsets.Split('\n');
-            List<string> expContent = new List<string>();
-            foreach (string s in raws) if (!orr.Contains(s)) expContent.Add(s);
-            List<object[]> bytes = new List<object[]>();
-            foreach (string s in expContent) bytes.Add(new object[] { Encoding.ASCII.GetBytes(s.Trim()), Encoding.ASCII.GetByteCount(s.Trim()) });
-            int cc = bytes.Sum<object[]>(o => ((byte[])o[0]).Length);
-            List<int> init = (new int[]{1,1}).ToList();
-            int newInds = 5;
-            for (int i = 0; i < newInds; i++) init.Add(init[i] + init[i + 1]);
-            init.AddRange(init.Reverse<int>().ToList());
-            int[] datagaps =
-                init.ToArray();
-
-            int datagapindex = 0;
-            double sizemul = datagaps.Sum(i => i + 1) / (double)datagaps.Length;
-            int c = (int)Math.Ceiling(cc * sizemul);
-            byte[] ret = new byte[c];
-            int ret_index = 0;
-            int byte_counter = 0, bytes_index = 0;
-            Random r = new Random(DateTime.Now.Millisecond);
-            for (int i = 0; i < cc; i++)
-            {
-                if (byte_counter >= ((byte[])(bytes[bytes_index][0])).Length)
-                {
-                    bytes_index++;
-                    byte_counter = 0;
-                }
-                ret[ret_index] = (byte)(((byte[])(bytes[bytes_index][0]))[byte_counter] + 127);
-                ret_index++;
-                for (int a = 0; a < datagaps[datagapindex]; a++)
-                {
-                    ret[ret_index] = (byte)r.Next(255);
-                    ret_index++;
-                }
-                datagapindex++;
-                datagapindex %= datagaps.Length;
-            }
-            SaveFileDialog save = new SaveFileDialog();
-            save.Filter = "CitySynth PresetPack (*.spdx)|*.spdx";
-            save.FileName = "PresetPack_" + Environment.UserName + "_" + DateTime.Now.ToShortDateString().Replace('/', '-');
-            DialogResult dr = save.ShowDialog();
-            if (dr == System.Windows.Forms.DialogResult.OK)
-            {
-                FileStream fs = File.Create(save.FileName);
-                fs.Write(ret, 0, ret.Length);
-                fs.Flush();
-                fs.Close();
-
-            }
-            save.Dispose();
-        }
         #endregion
         #region Event Handlers
 
         #region Dials, Checkboxes and Buttons
-        private void ampAttackDial_ValueChanged(object sender, EventArgs e) { LinkVar(out R.Attack, sender); }
-        private void ampDecayDial_ValueChanged(object sender, EventArgs e) { LinkVar(out R.Decay, sender); }
-        private void ampSustainDial_ValueChanged(object sender, EventArgs e) { LinkVar(out R.Sustain, sender); }
-        private void ampReleaseDial_ValueChanged(object sender, EventArgs e) { LinkVar(out R.Release, sender); }
+        private void ampAttackDial_ValueChanged(object sender, EventArgs e) => Bindings.LinkVar(out R.Attack, sender);
+        private void ampDecayDial_ValueChanged(object sender, EventArgs e) => Bindings.LinkVar(out R.Decay, sender);
+        private void ampSustainDial_ValueChanged(object sender, EventArgs e) => Bindings.LinkVar(out R.Sustain, sender);
+        private void ampReleaseDial_ValueChanged(object sender, EventArgs e) => Bindings.LinkVar(out R.Release, sender);
 
-        private void filterCutoffDial_ValueChanged(object sender, EventArgs e) { if (!enableTouch) LinkVar(out R.LPF, sender); else LinkVar(out R.HPFCutoff, sender); }
-        private void fftFilterToggle_CheckedChanged(object sender, EventArgs e) { LinkVar(out R.FFTEnable, sender); }
+        private void filterCutoffDial_ValueChanged(object sender, EventArgs e) => Bindings.Run(!enableTouch ? Bindings.LinkVar(out R.LPF, sender) : Bindings.LinkVar(out R.HPFCutoff, sender));
+        private void fftFilterToggle_CheckedChanged(object sender, EventArgs e) => Bindings.LinkVar(out R.FFTEnable, sender);
 
-        private void envReleaseDial_ValueChanged(object sender, EventArgs e) { LinkVar(out R.LPFrelease, sender); }
-        private void envAttackDial_ValueChanged(object sender, EventArgs e) { LinkVar(out R.LPFattack, sender); }
-        private void envFloorDial_ValueChanged(object sender, EventArgs e) { LinkVar(out R.LPFfloor, sender); }
-        private void envCeilingDial_ValueChanged(object sender, EventArgs e) { LinkVar(out R.LPFceiling, sender); }
+        private void envReleaseDial_ValueChanged(object sender, EventArgs e) => Bindings.LinkVar(out R.LPFrelease, sender);
+        private void envAttackDial_ValueChanged(object sender, EventArgs e) => Bindings.LinkVar(out R.LPFattack, sender);
+        private void envFloorDial_ValueChanged(object sender, EventArgs e) => Bindings.LinkVar(out R.LPFfloor, sender);
+        private void envCeilingDial_ValueChanged(object sender, EventArgs e) => Bindings.LinkVar(out R.LPFceiling, sender);
 
-        private void lfoRateDial_ValueChanged(object sender, EventArgs e) { LinkVar(out R.LPFmodrate, sender); }
-        private void lfoWidthDial_ValueChanged(object sender, EventArgs e) { LinkVar(out R.LPFwidth, sender); }
+        private void lfoRateDial_ValueChanged(object sender, EventArgs e) => Bindings.LinkVar(out R.LPFmodrate, sender);
+        private void lfoWidthDial_ValueChanged(object sender, EventArgs e) => Bindings.LinkVar(out R.LPFwidth, sender);
 
-        private void ampLfoRateDial_ValueChanged(object sender, EventArgs e) { LinkVar(out R.AmpLFOrate, sender); }
-        private void ampLfoWidthDial_ValueChanged(object sender, EventArgs e) { LinkVar(out R.AmpLFOwidth, sender); }
+        private void ampLfoRateDial_ValueChanged(object sender, EventArgs e) => Bindings.LinkVar(out R.AmpLFOrate, sender);
+        private void ampLfoWidthDial_ValueChanged(object sender, EventArgs e) => Bindings.LinkVar(out R.AmpLFOwidth, sender);
 
-        private void delayLengthDial_ValueChanged(object sender, EventArgs e) { if (!enableTouch)LinkVar(out R.DelayTime, sender); else LinkVar(out R.ReverbDelay, sender); }
-        private void delayWetDial_ValueChanged(object sender, EventArgs e) { if (!enableTouch)LinkVar(out R.DelayWet, sender); else LinkVar(out R.ReverbWet, sender); }
+        private void delayLengthDial_ValueChanged(object sender, EventArgs e) => Bindings.Run(!enableTouch ? Bindings.LinkVar(out R.DelayTime, sender) : Bindings.LinkVar(out R.ReverbDelay, sender));
+        private void delayWetDial_ValueChanged(object sender, EventArgs e) => Bindings.Run(!enableTouch ? Bindings.LinkVar(out R.DelayWet, sender) : Bindings.LinkVar(out R.ReverbWet, sender));
 
-        private void pitchRateDial_ValueChanged(object sender, EventArgs e) { LinkVar(out R.Pitchmod, sender); }
-        private void pitchWidthDial_ValueChanged(object sender, EventArgs e) { LinkVar(out R.Pitchmodwidth, sender); }
-        private void masterLevelDial_ValueChanged(object sender, EventArgs e) { R.SetMaster = ((CitySynth.UI_Elements.Dial)sender).GetScaledValue(); }
+        private void pitchRateDial_ValueChanged(object sender, EventArgs e) => Bindings.LinkVar(out R.Pitchmod, sender);
+        private void pitchWidthDial_ValueChanged(object sender, EventArgs e) => Bindings.LinkVar(out R.Pitchmodwidth, sender);
+        private void masterLevelDial_ValueChanged(object sender, EventArgs e) => Bindings.LinkVar(value => R.SetMaster = value, sender);
 
-        private void osc1PhaseDial_ValueChanged(object sender, EventArgs e) { if (!enableTouch) LinkVar(out R.HarmonicPhase, sender); else LinkVar(out R.FilterFeedback, sender); }
+        private void osc1PhaseDial_ValueChanged(object sender, EventArgs e) => Bindings.Run(!enableTouch ? Bindings.LinkVar(out R.HarmonicPhase, sender) : Bindings.LinkVar(out R.FilterFeedback, sender));
 
-        private void envActivateButton_CheckedChanged(object sender, EventArgs e) { LinkVar(out R.LPFenvelope, sender); }
+        private void envActivateButton_CheckedChanged(object sender, EventArgs e) => Bindings.LinkVar(out R.LPFenvelope, sender);
 
-        private void polyMonoSwitch_CheckedChanged(object sender, EventArgs e) { SwitchPolyMonoModes(); }
-        private void touchPadEnableToggle_CheckedChanged(object sender, EventArgs e) { LinkVar(out enableTouch, sender); }
+        private void polyMonoSwitch_CheckedChanged(object sender, EventArgs e) => SwitchPolyMonoModes();
+        private void touchPadEnableToggle_CheckedChanged(object sender, EventArgs e) => Bindings.LinkVar(out enableTouch, sender);
 
         private void closeWindowBtn_CheckChanged(object sender, EventArgs e)
         {
@@ -1468,11 +1420,12 @@ namespace CitySynth
         }
 
         private void osc1GainDial_ValueChanged(object sender, EventArgs e)
-        { 
+        {
             float db = 0;
-            LinkVar(out db, sender);
+            Bindings.LinkVar(out db, sender);
             float dec = (float)Math.Pow(10, db / 10.0f);
-            if (!enableTouch) {
+            if (!enableTouch)
+            {
                 R.Gain = db;
                 R.GeneralAtten = dec;
             }
@@ -1495,8 +1448,7 @@ namespace CitySynth
         {
             if (e.Button == MouseButtons.Left && e.Y <= 78)
             {
-                ReleaseCapture();
-                SendMessage(Handle, WM_NCLBUTTONDOWN, HT_CAPTION, 0);
+                MouseKeyboardEvents.HandleCaptionBarDrag(Handle);
             }
         }
 
@@ -1536,7 +1488,6 @@ namespace CitySynth
                 R.Amplitude = 0;
         }
 
-
         /// <summary>
         /// Touchpad mouse click to toggle touchpad controls.
         /// </summary>
@@ -1550,26 +1501,7 @@ namespace CitySynth
         /// </summary>
         private void touchPad_DoubleClick(object sender, EventArgs e)
         {
-            if (touchPadEnableToggle.Checked) touchPadEnableToggle.Checked = false;
-            enableTouch = false;
-            R.HarmonicsControl = 1;
-            R.Harmonic2Gain = 0;
-            R.FilterFeedback = 0;
-            R.FilterDrive = 1;
-            R.HPFCutoff = 0;
-            R.HarmonicFunction = WaveFuntion.sin;
-            R.MaxHarmonic = 5;
-            R.SubOscGain = 0;
-            R.FFTMode = 1;
-            R.HarmonicV1 = true;
-            masterLevelDial.SetScaledValue(10 * (float)Math.Log10(R.MasterLevel));
-
-            if (devs != null && devs.Count == 0)
-                R.BaseFrequency = 220;
-            else
-                R.BaseFrequency = 22.5f / 2;
-            R.kb_off = 3;
-            if (touchPadEnableToggle.Checked) touchPadEnableToggle.Checked = false;
+            SoftResetState();
         }
 
         /// <summary>
@@ -1577,8 +1509,8 @@ namespace CitySynth
         /// </summary>
         private void lfoHpfToggle_MouseUp(object sender, MouseEventArgs e)
         {
-            this.Cursor = Cursors.Default;
-            if (e.Button == System.Windows.Forms.MouseButtons.Left)
+            Cursor = Cursors.Default;
+            if (e.Button == MouseButtons.Left)
             {
                 try
                 {
@@ -1586,7 +1518,7 @@ namespace CitySynth
                         e.Y + lfoHpfToggle.Location.Y);
                     if (panel1.GetChildAtPoint(p).GetType() == osc1GainDial.GetType())
                     {
-                        this.lfoHpfToggle.ChangeDisplayText(
+                        lfoHpfToggle.ChangeDisplayText(
                             panel1.GetChildAtPoint(p).Text);
                         varyingDial = panel1.GetChildAtPoint(p);
                         if (varyingDial == lfoRateDial || varyingDial == lfoWidthDial)
@@ -1600,10 +1532,7 @@ namespace CitySynth
                     else this.lfoHpfToggle.RestoreDisplayText();
 
                 }
-                catch
-                {
-
-                }
+                catch { }
             }
         }
 
@@ -1612,24 +1541,19 @@ namespace CitySynth
         /// </summary>
         private void lfoHpfToggle_MouseMove(object sender, MouseEventArgs e)
         {
-            if (e.Button == System.Windows.Forms.MouseButtons.Left)
-            { 
-                this.Cursor = Cursors.Cross;
+            if (e.Button == MouseButtons.Left)
+            {
+                Cursor = Cursors.Cross;
                 try
                 {
-                    Point p = new Point(e.X + lfoHpfToggle.Location.X,
+                    Point p = new Point(
+                        e.X + lfoHpfToggle.Location.X,
                         e.Y + lfoHpfToggle.Location.Y);
+
                     if (panel1.GetChildAtPoint(p).GetType() == osc1GainDial.GetType())
-                    {
-                        this.lfoHpfToggle.ChangeDisplayText(
-                            panel1.GetChildAtPoint(p).Text);
-                    }
-
+                        lfoHpfToggle.ChangeDisplayText(panel1.GetChildAtPoint(p).Text);
                 }
-                catch
-                {
-
-                }
+                catch { }
             }
         }
 
@@ -1638,7 +1562,7 @@ namespace CitySynth
         /// </summary>
         private void lfoHpfToggle_DoubleClick(object sender, EventArgs e)
         {
-            this.lfoHpfToggle.Text = "HPF...";
+            lfoHpfToggle.Text = "HPF...";
             varyingDial = null;
         }
 
@@ -1650,7 +1574,9 @@ namespace CitySynth
             switch (e.ButtonIndex)
             {
                 case 0:
-                    ExportPresetPack();
+                    var inputPresetsBlob = Encoding.UTF8.GetString(Resources.factorypresets);
+                    var bytes = PresetUtils.ExportPresetPack(presetsText, inputPresetsBlob);
+                    OpenPresetPackSaveDialog(bytes);
                     break;
                 case 1:
                     SavePreset();
@@ -1681,9 +1607,9 @@ namespace CitySynth
                     aout.Stop();
                 else
                     wout.Stop();
-                while (File.Exists(String.Format("temp_00{0}.wav", ++filenameIndex)))
+                while (File.Exists(string.Format("temp_00{0}.wav", ++filenameIndex)))
                 { }
-                wr = new WaveRecorder(cwp, String.Format("temp_00{0}.wav", filenameIndex));
+                wr = new WaveRecorder(cwp, string.Format("temp_00{0}.wav", filenameIndex));
                 rawrec = DateTime.Now.ToLongTimeString() + "\n";
                 recnotes = true;
                 recStarted = DateTime.Now;
@@ -1705,12 +1631,9 @@ namespace CitySynth
                 p.Start();
             }
         }
-        
+
         #endregion
 
-        
         #endregion
-
-
     }
 }
