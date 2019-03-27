@@ -100,14 +100,11 @@
     <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="alglibnet2">
-      <HintPath>..\..\..\..\..\Programs\alglib-3.9.0.csharp.gpl\alglibnet2.dll</HintPath>
+    <Reference Include="Midi, Version=1.1.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\midi-dot-net.1.1.0\lib\net35\Midi.dll</HintPath>
     </Reference>
-    <Reference Include="Midi">
-      <HintPath>..\..\..\..\..\Backups and OSs\Creative Backups\Programming\Visual Studio 2013\SynthCS\SynthCS\bin\Debug\Midi.dll</HintPath>
-    </Reference>
-    <Reference Include="NAudio">
-      <HintPath>..\..\..\..\..\Programs\NAudio-1-7-2-Release\NAudio.dll</HintPath>
+    <Reference Include="NAudio, Version=1.8.5.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\NAudio.1.8.5\lib\net35\NAudio.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration.Install" />
@@ -222,6 +219,7 @@
     <EmbeddedResource Include="UI Elements\ToggleIcon.resx">
       <DependentUpon>ToggleIcon.cs</DependentUpon>
     </EmbeddedResource>
+    <None Include="packages.config" />
     <None Include="Properties\app.manifest" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -242,6 +240,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="ct_fileicon_9eh_icon.ico" />
+    <Content Include="README.txt" />
     <Content Include="Resources\ctlinehorizontal.png" />
     <Content Include="Resources\ctlogo_Ni9_icon.ico" />
     <Content Include="Resources\cttouchpadbg.png" />

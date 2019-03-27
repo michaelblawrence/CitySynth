@@ -97,10 +97,23 @@ namespace CitySynth
                         break;
                     }
                 }
-                aout = new AsioOut(DriverIndex);
-                aout.ShowControlPanel();
+                try
+                {
+                    aout = new AsioOut(DriverIndex);
+                    aout.ShowControlPanel();
+                }
+                catch { }
             }
-            if (aout == null) aout = new AsioOut(DriverIndex);
+            try
+            {
+                if (aout == null) aout = new AsioOut(DriverIndex);
+            }
+            catch { }
+            try
+            {
+                if (aout == null && wout == null) wout = new WaveOut();
+            }
+            catch { }
 
             //Semitone factor calcluations
             semitones[0] = 1;
@@ -143,8 +156,9 @@ namespace CitySynth
                 cwp = new CustomWaveProvider(R.SampleRate);
             else
                 cwp = new PolyWaveProvider(R.SampleRate);
-            if (aout != null) { aout.Init(cwp); aout.Play(); }
-            else { wout.Init(cwp); wout.Play(); }
+            if (aout != null) { aout?.Init(cwp); aout?.Play(); }
+            else { wout?.Init(cwp); wout?.Play(); }
+            if (aout == null && wout == null && MessageBox.Show("Error starting audio. Shutting down...") != DialogResult.Cancel) Application.Exit();
 
             //MIDI init and device selection
             devs = new List<InputDevice>();
