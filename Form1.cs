@@ -82,7 +82,7 @@ namespace CitySynth
                 for (int i = 0; i < drivers.Length; i++)
                 {
                     DialogResult dr = MessageBox.Show("Use " + drivers[i] + "?", "Choose Audio Device", MessageBoxButtons.YesNo);
-                    if (dr == System.Windows.Forms.DialogResult.Yes)
+                    if (dr == DialogResult.Yes)
                     {
                         DriverIndex = i;
                         break;
@@ -128,7 +128,7 @@ namespace CitySynth
                         "Do you wish commit this collection to your local user library? \n(Warning this feature is experimental!)",
                         "Store Preset", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2);
                     string s = LoadFromFile(argsFilename, 0, false);
-                    if (dr == System.Windows.Forms.DialogResult.Yes)
+                    if (dr == DialogResult.Yes)
                     {
                         string backfn = filename + ".backup";
                         if (File.Exists(backfn)) File.Delete(backfn);
@@ -161,11 +161,11 @@ namespace CitySynth
                 {
                     string name = id.Name;
                     DialogResult dr;
-                    if (Program.displayNoDialog) dr = System.Windows.Forms.DialogResult.Yes;
+                    if (Program.displayNoDialog) dr = DialogResult.Yes;
                     else dr = MessageBox.Show("Would you like to use " + name + " as a midi device?",
                         "Enable Midi", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button1);
 
-                    if (dr == System.Windows.Forms.DialogResult.Yes)
+                    if (dr == DialogResult.Yes)
                     {
                     MidiOpen:
                         try
@@ -1169,11 +1169,17 @@ namespace CitySynth
         /// </summary>
         private void SavePreset()
         {
-            DialogResult dr = ShowSavePresetDialog(out var dialogPresetName);
+            Func<(bool placeBelow, Form dialog), Point> dialogLocation = (input) => new Point(
+                Location.X + presetSelector.Location.X + presetSelector.Width / 2 - input.dialog.Width / 2,
+                Location.Y + presetSelector.Location.Y
+                + (input.placeBelow ? presetSelector.Height :
+                -input.dialog.Height));
+            DialogResult dr = PresetUtils.ShowSavePresetDialog(this, dialogLocation, out var dialogPresetName);
 
             if (dr == DialogResult.OK && dialogPresetName != "")
             {
-                string presetBlob = CurrentPresetToString(dialogPresetName, presetSelector.Items.Count);
+                var presetIden = GenerateNextIden();
+                string presetBlob = PresetUtils.CurrentPresetToString(dialogPresetName, presetSelector.Items.Count, presetIden);
                 var presetFilename = Application.LocalUserAppDataPath.TrimEnd('\\') + "\\" + "userpresets.sdp";
                 using (StreamWriter sw = presetFilename == null ? File.CreateText(presetFilename) : File.AppendText(presetFilename))
                 {
@@ -1185,77 +1191,10 @@ namespace CitySynth
             }
         }
 
-        /// <summary>
-        /// Converts the current preset to CitySynth preset format string.
-        /// </summary>
-        /// <returns>CitySynth preset format string.</returns>
-        /// <param name="presetName">Preset name.</param>
-        /// <param name="index">Preset index.</param>
-        private string CurrentPresetToString(string presetName, int index)
+        private static int GenerateNextIden()
         {
-            string name = presetName.Replace(':', ' ').Replace('|', ' ');
-            int iden = new Random(DateTime.Now.Millisecond).Next(1023);
-
-            string s = index + ":" + name + ":" + iden + "|";
-            s += "a:" + R.Attack + ";";
-            s += "d:" + R.Decay + ";";
-            s += "s:" + R.Sustain + ";";
-            s += "r:" + R.Release + ";";
-            s += "h:" + R.MaxHarmonic + ";";
-            s += "hc:" + R.HarmonicsControl + ";";
-            s += "hp:" + R.HarmonicPhase + ";";
-            s += "w:" + (int)R.WFunction + ";";
-            s += "hw:" + (int)R.HarmonicFunction + ";";
-            s += "b:" + Math.Log(R.BaseFrequency / 440, 2) + ";";
-            s += "hpf:" + R.HPFCutoff + ";";
-            s += "lpf:" + R.LPF + ";";
-            s += "lfo:" + R.LPFmodrate + ";";
-            s += "prate:" + R.Pitchmod + ";";
-            s += "pwidth:" + R.Pitchmodwidth + ";";
-            s += "arate:" + R.AmpLFOrate + ";";
-            s += "awidth:" + R.AmpLFOwidth + ";";
-            s += "lwidth:" + R.LPFwidth + ";";
-            s += "la:" + R.LPFattack + ";";
-            s += "lr:" + R.LPFrelease + ";";
-            s += "lf:" + R.LPFfloor + ";";
-            s += "lc:" + R.LPFceiling + ";";
-            s += "delay:" + R.DelayTime + ";";
-            s += "dwet:" + R.DelayWet + ";";
-            s += "rwet:" + R.ReverbWet + ";";
-            s += "ffb:" + R.FilterFeedback + ";";
-            s += "fd:" + R.FilterDrive + ";";
-            s += "filter:" + (R.FFTEnable ? R.FFTMode : 0) + ";";
-            s += "lpfenv:" + (R.LPFenvelope ? 1 : 0) + ";";
-            if (R.Harmonic2Gain != 0)
-                s += "h2:" + R.Harmonic2Gain + ";";
-            if (R.SubOscGain != 0)
-                s += "sub:" + R.SubOscGain + ";";
-            if (!osc1GainDial.Inactive)
-                s += "g:" + R.Gain + ";";
-            if (!R.HarmonicV1)
-                s += "hv1:" + Convert.ToInt16(R.HarmonicV1) + ";";
-
-            return s;
+            return new Random(DateTime.Now.Millisecond).Next(1023);
         }
-
-        private static void OpenPresetPackSaveDialog(byte[] bytes)
-        {
-            var save = new SaveFileDialog
-            {
-                Filter = "CitySynth PresetPack (*.spdx)|*.spdx",
-                FileName = "PresetPack_" + Environment.UserName + "_" + DateTime.Now.ToShortDateString().Replace('/', '-')
-            };
-            var dr = save.ShowDialog();
-            if (dr == DialogResult.OK)
-            {
-                using (FileStream fs = File.Create(save.FileName))
-                {
-                    fs.Write(bytes, 0, bytes.Length);
-                }
-            }
-            save.Dispose();
-        }
-
 
         private void SoftResetState()
         {
@@ -1279,74 +1218,6 @@ namespace CitySynth
                 R.BaseFrequency = 22.5f / 2;
             R.kb_off = 3;
             if (touchPadEnableToggle.Checked) touchPadEnableToggle.Checked = false;
-        }
-        /// <summary>
-        /// Shows the saving preset name dialog.
-        /// </summary>
-        /// <returns>Result of the preset name dialog.</returns>
-        /// <param name="dialogPresetName">Entered preset name.</param>
-        private DialogResult ShowSavePresetDialog(out string dialogPresetName)
-        {
-            bool placeBelow = true;
-            Form inputForm = new Form
-            {
-                Text = "Preset Name",
-                Size = new System.Drawing.Size(217, 60),
-                StartPosition = FormStartPosition.Manual,
-                FormBorderStyle = FormBorderStyle.FixedToolWindow,
-                BackColor = Color.DarkGray
-            };
-            inputForm.Location = new Point(this.Location.X + presetSelector.Location.X + presetSelector.Width / 2 - inputForm.Width / 2,
-                this.Location.Y + presetSelector.Location.Y
-                + (placeBelow ? presetSelector.Height :
-                -inputForm.Height));
-
-            TextBox tb = new TextBox
-            {
-                Size = new Size(150, 20),
-                BorderStyle = BorderStyle.FixedSingle,
-                TabIndex = 0,
-                Text = "Untitled " + DateTime.Now.ToShortDateString()
-            };
-            tb.SelectAll();
-            inputForm.Controls.Add(tb);
-
-            Button b = new Button
-            {
-                FlatStyle = FlatStyle.Popup,
-                DialogResult = System.Windows.Forms.DialogResult.OK,
-                Size = new Size(50, 20),
-                Text = "Save",
-                TabIndex = 1,
-                Location = new Point(150, 0)
-            };
-            b.Click += (sender, e) =>
-            {
-                if (tb.Text.Trim() != "")
-                    inputForm.Close();
-            };
-
-            inputForm.Controls.Add(b);
-            inputForm.KeyPreview = true;
-            inputForm.KeyUp += (sender, e) =>
-            {
-                if (e.KeyCode == Keys.Escape)
-                {
-                    inputForm.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-                    inputForm.Close();
-                }
-            };
-            inputForm.AcceptButton = b;
-
-            DialogResult dr = inputForm.ShowDialog(this);
-
-            dialogPresetName = tb.Text;
-
-            inputForm.Dispose();
-            b.Dispose();
-            tb.Dispose();
-
-            return dr;
         }
         #endregion
         #region Event Handlers
@@ -1384,6 +1255,7 @@ namespace CitySynth
 
         private void polyMonoSwitch_CheckedChanged(object sender, EventArgs e) => SwitchPolyMonoModes();
         private void touchPadEnableToggle_CheckedChanged(object sender, EventArgs e) => Bindings.LinkVar(out enableTouch, sender);
+        private void osc1GainDial_InactiveChanged(object sender, EventArgs e) => Bindings.LinkVar(out R.GainControlInactive, sender);
 
         private void closeWindowBtn_CheckChanged(object sender, EventArgs e)
         {
@@ -1576,7 +1448,7 @@ namespace CitySynth
                 case 0:
                     var inputPresetsBlob = Encoding.UTF8.GetString(Resources.factorypresets);
                     var bytes = PresetUtils.ExportPresetPack(presetsText, inputPresetsBlob);
-                    OpenPresetPackSaveDialog(bytes);
+                    PresetUtils.OpenPresetPackSaveDialog(bytes, this);
                     break;
                 case 1:
                     SavePreset();
@@ -1597,8 +1469,8 @@ namespace CitySynth
                     wout.Stop();
                 wr.Dispose();
                 recnotes = false;
-                string notedata = rawrec;
-                string sounddata = CurrentPresetToString("REC" + recStarted.ToString("HHmmddMMyyyy"), 0);
+                var presetIden = GenerateNextIden();
+                string sounddata = PresetUtils.CurrentPresetToString("REC" + recStarted.ToString("HHmmddMMyyyy"), 0, presetIden);
                 ReplaceWaveProvider(cwp);
             }
             else
@@ -1624,7 +1496,7 @@ namespace CitySynth
         /// <param name="e">E.</param>
         private void recButton_MouseClick(object sender, MouseEventArgs e)
         {
-            if (e.Button == System.Windows.Forms.MouseButtons.Right)
+            if (e.Button == MouseButtons.Right)
             {
                 System.Diagnostics.Process p = new System.Diagnostics.Process();
                 p.StartInfo.FileName = Application.StartupPath;

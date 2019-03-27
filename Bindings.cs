@@ -32,6 +32,11 @@ namespace CitySynth
         private static Type Toggle = new ToggleIcon().GetType();
 
         /// <summary>
+        /// Type of Dial control class
+        /// </summary>
+        private static Type Dial = new Dial().GetType();
+
+        /// <summary>
         /// Links a Toggle Icon control's value to an output variable value.
         /// </summary>
         /// <param name="variable">Boolean output variable.</param>
@@ -40,8 +45,9 @@ namespace CitySynth
         {
             if (sender.GetType() == Toggle)
                 variable = (sender as ToggleIcon).Checked;
-            else
-                variable = false;
+            else if (sender.GetType() == Dial)
+                variable = (sender as Dial).Inactive;
+            variable = false;
             return variable;
         }
 

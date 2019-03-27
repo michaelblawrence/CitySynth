@@ -389,6 +389,7 @@
             this.osc1GainDial.TabIndex = 0;
             this.osc1GainDial.Text = "Gain";
             this.osc1GainDial.Value = 0.75F;
+            this.osc1GainDial.InactiveChanged += new CitySynth.UI_Elements.OnInactiveChanged(this.osc1GainDial_InactiveChanged);
             this.osc1GainDial.ValueChanged += new CitySynth.UI_Elements.OnValueChanged(this.osc1GainDial_ValueChanged);
             // 
             // ampReleaseDial

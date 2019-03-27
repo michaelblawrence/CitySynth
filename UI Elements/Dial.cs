@@ -15,6 +15,8 @@ namespace CitySynth.UI_Elements
 {
     public delegate void OnValueChanged(object sender, EventArgs e);
 
+    public delegate void OnInactiveChanged(object sender, EventArgs e);
+
     [DefaultProperty("Value")]
     [DefaultEvent("ValueChanged")]
     public partial class Dial : UserControl
@@ -30,9 +32,9 @@ namespace CitySynth.UI_Elements
                 if (value > 1) mValue = 1;
                 else if (value < 0) mValue = 0;
                 else mValue = value;
-                if (pValue != mValue && ValueChanged != null)
+                if (pValue != mValue)
                 {
-                    ValueChanged.Invoke(this, new EventArgs());
+                    ValueChanged?.Invoke(this, new EventArgs());
                 }
                 pValue = mValue;
                 Invalidate();
@@ -48,7 +50,12 @@ namespace CitySynth.UI_Elements
             get { return mInactive; }
             set
             {
+                var pInactive = mInactive;
                 mInactive = value;
+                if (mInactive != pInactive)
+                {
+                    InactiveChanged?.Invoke(this, new EventArgs());
+                }
                 Invalidate();
             }
         }
@@ -201,6 +208,9 @@ namespace CitySynth.UI_Elements
         }
         [Description("Occurs when the dial's value changes.")]
         public event OnValueChanged ValueChanged;
+
+        [Description("Occurs when the dial's inactivity state changes.")]
+        public event OnInactiveChanged InactiveChanged;
 
         private float mValue = 0;
         private float pValue = 0;

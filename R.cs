@@ -51,7 +51,7 @@ namespace CitySynth.State
         public static float FilterDrive = 1f;
         public static float PitchBendFactor = 1;
         public static float Attack = 30, Decay = 50, Sustain = 0.55f, Release = 20;
-        public static bool SusPedal = false, SusToSpacebar = false;
+        public static bool SusPedal = false, SusToSpacebar = false, GainControlInactive = true;
         public static bool StereoIm = false, SinV2 = false, MonoEnabled = false, Glide = false, FFTEnable = true, HarmonicFix = false, HarmonicV1 = true, FMScale = true, StereoReverb = true;
         public static bool tmp = false;
         public static List<int[]> ke = new List<int[]>();
