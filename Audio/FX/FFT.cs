@@ -2,12 +2,12 @@
 using CitySynth.State;
 using NAudio.Dsp;
 
-namespace CitySynth
+namespace CitySynth.Audio.FX
 {
     /// <summary>
     /// Static class for FFT filter implementation.
     /// </summary>
-    public static class FFTs
+    public static class FFT
     {
         /// <summary>
         /// Sample rate
@@ -35,7 +35,7 @@ namespace CitySynth
         /// <param name="sampleCount">Buffer sample length</param>
         /// <param name="ss">Audio buffer for filter processing input</param>
         /// <param name="filterindex">LFP cutoff shape [0,1 or 3]</param>
-        public static void FFTv3(ref short[] buffer, int sampleCount, short[] ss, int filterindex)
+        public static void ButterworthTwoPole(ref short[] buffer, int sampleCount, short[] ss, int filterindex)
         {
             int poles = 2;
             int cc = ss.Length;

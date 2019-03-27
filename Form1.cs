@@ -13,8 +13,10 @@ using CitySynth.State;
 using Midi;
 using CitySynth.Enums;
 using CitySynth.Helpers;
-using CitySynth.Presets;
+using CitySynth.Preset;
 using CitySynth.Properties;
+using CitySynth.Audio;
+using CitySynth.Audio.FX;
 
 namespace CitySynth
 {

@@ -1,4 +1,4 @@
-﻿namespace CitySynth
+﻿namespace CitySynth.Preset
 {
     public class CityPresetCommand
     {

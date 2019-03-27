@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace CitySynth
+namespace CitySynth.Helpers
 {
     public static class MouseKeyboardEvents
     {

@@ -1,7 +1,7 @@
 ﻿using CitySynth.UI_Elements;
 using System;
 
-namespace CitySynth
+namespace CitySynth.Helpers
 {
     public static class Bindings
     {

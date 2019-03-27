@@ -2,7 +2,7 @@
 using System.Data;
 using System.Linq;
 
-namespace CitySynth
+namespace CitySynth.Preset
 {
     public class CityPreset
     {
