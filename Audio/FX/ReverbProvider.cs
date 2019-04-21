@@ -8,7 +8,7 @@ namespace CitySynth.Audio.FX
     /// Adaptation of Schroeder, M.R. & Logan, B.F.. (1961). Colorless artificial reverberation. Audio, IRE Transactions on. AU-9. 209 - 214. 10.1109/TAU.1961.1166351.
     /// Designed to integrate within modulated delay send and receive points for optimum control
     /// </summary>
-    public abstract class ReverbProvider
+    public abstract class ReverbProvider : IDisposable
     {
         #region var declarations
         /// <summary>
@@ -178,5 +178,41 @@ namespace CitySynth.Audio.FX
         {
             return ccs;
         }
+
+        #region IDisposable Support
+        private bool disposedValue = false; // To detect redundant calls
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    // TODO: dispose managed state (managed objects).
+                    DisposeBuffers();
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
+                // TODO: set large fields to null.
+
+                disposedValue = true;
+            }
+        }
+
+        // TODO: override a finalizer only if Dispose(bool disposing) above has code to free unmanaged resources.
+        // ~ReverbProvider() {
+        //   // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+        //   Dispose(false);
+        // }
+
+        // This code added to correctly implement the disposable pattern.
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            Dispose(true);
+            // TODO: uncomment the following line if the finalizer is overridden above.
+            // GC.SuppressFinalize(this);
+        }
+        #endregion
     }
 }

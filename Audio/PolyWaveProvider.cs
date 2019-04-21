@@ -6,7 +6,7 @@ using CitySynth.Helpers;
 using System.Linq;
 using CitySynth.Audio.FX;
 
-namespace CitySynth.Audio.Providers
+namespace CitySynth.Audio
 {
     /// <summary>
     /// Polyphonic synth wave provider with variable filter design, algorithmic reverb and modulating delay. 
@@ -299,22 +299,6 @@ namespace CitySynth.Audio.Providers
 
             // return number of samples processed. non-zero return keeps the realtime calling of Read()
             return sampleCount;
-        }
-
-        public void SwitchReverb()
-        {
-            // Enables reverb
-            if (reverb[0].GetType() == typeof(TapeReverb))
-                for (int i = 0; i < reverb.Length; i++)
-                {
-                    int[] cc = new int[reverb[i].GetBufferLengths().Length];
-                    Array.Copy(reverb[i].GetBufferLengths(), cc, cc.Length);
-                    //Audio.Providers.PolyWaveProvider.reverb[i].Dispose();
-                    reverb[i] = new DigitalReverb(R.SampleRate, cc);
-                }
-            else
-                for (int i = 0; i < reverb.Length; i++)
-                    reverb[i] = new TapeReverb(R.SampleRate, reverb[i].GetBufferLengths());
         }
     }
 }

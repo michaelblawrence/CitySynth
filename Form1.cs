@@ -15,9 +15,10 @@ using CitySynth.Enums;
 using CitySynth.Helpers;
 using CitySynth.Preset;
 using CitySynth.Properties;
-using CitySynth.Audio.Providers;
+using CitySynth.Audio;
+using CitySynth.Audio.FX;
 
-namespace CitySynth.UI
+namespace CitySynth
 {
     public partial class Form1 : Form
     {
@@ -49,12 +50,13 @@ namespace CitySynth.UI
         Graphics g;
         PointF[] waveformPts;
 
-        IWavePlayer wout = new WaveOut();
-        IWavePlayer aout = null;
+        WaveOut wout = new WaveOut();
+        AsioOut aout = null;
         WaveProvider16 cwp;
         WaveRecorder wr;
         Timer timer = new Timer();
 
+        public static float[] semitones = new float[12];
         public const int FlashLength = 200;
         #endregion
         #region init
@@ -91,7 +93,7 @@ namespace CitySynth.UI
                 try
                 {
                     aout = new AsioOut(DriverIndex);
-                    (aout as AsioOut).ShowControlPanel();
+                    aout.ShowControlPanel();
                 }
                 catch { }
             }
@@ -105,6 +107,14 @@ namespace CitySynth.UI
                 if (aout == null && wout == null) wout = new WaveOut();
             }
             catch { }
+
+            //Semitone factor calcluations
+            semitones[0] = 1;
+            double semrat = Math.Pow(2, 1 / 12.0d);
+            for (int i = 1; i < 12; i++)
+            {
+                semitones[i] = (float)Math.Round(semitones[i - 1] * semrat, 5, MidpointRounding.ToEven);
+            }
 
             //Preset loading and preparation
             string filename = Path.Combine(Application.LocalUserAppDataPath, "userpresets.sdp");
@@ -307,10 +317,18 @@ namespace CitySynth.UI
                         }
                         else
                         {
-                            if (cwp is PolyWaveProvider waveProvider)
-                            {
-                                waveProvider.SwitchReverb();
-                            }
+                            // Enables reverb
+                            if (PolyWaveProvider.reverb[0].GetType() == typeof(TapeReverb))
+                                for (int i = 0; i < PolyWaveProvider.reverb.Length; i++)
+                                {
+                                    int[] cc = new int[PolyWaveProvider.reverb[i].GetBufferLengths().Length];
+                                    Array.Copy(PolyWaveProvider.reverb[i].GetBufferLengths(), cc, cc.Length);
+                                    PolyWaveProvider.reverb[i].Dispose();
+                                    PolyWaveProvider.reverb[i] = new DigitalReverb(R.SampleRate, cc);
+                                }
+                            else
+                                for (int i = 0; i < PolyWaveProvider.reverb.Length; i++)
+                                    PolyWaveProvider.reverb[i] = new TapeReverb(R.SampleRate, PolyWaveProvider.reverb[i].GetBufferLengths());
                         }
                         break;
                     //  Harmonic generation method toggle / (Alt) Enable spacebar sustain pedal toggle
@@ -430,13 +448,13 @@ namespace CitySynth.UI
 
                     // Momentary Interval Control
                     case Keys.C:
-                        float _factor = MidiHelpers.Semitones[5];
+                        float _factor = semitones[5];
                         if (!R.keys[kv])
                             R.BaseFrequency /= _factor;
                         R.keys[kv] = true;
                         break;
                     case Keys.V:
-                        float _factor1 = MidiHelpers.Semitones[7];
+                        float _factor1 = semitones[7];
                         if (!R.keys[kv])
                             R.BaseFrequency /= _factor1;
                         R.keys[kv] = true;
@@ -536,7 +554,7 @@ namespace CitySynth.UI
 
 
             // adds key press to list of key up for voices for musical PC keyboard events
-            if (R.ke.ConvertAll(a => a[0]).Contains(e.KeyValue))
+            if (R.ke.ConvertAll<int>(a => a[0]).Contains(e.KeyValue))
             {
                 R._ke.Add(e.KeyValue);
                 FlashMidiIndicator();
@@ -557,12 +575,12 @@ namespace CitySynth.UI
             // Reset Momentary Interval Control
             if (e.KeyCode == Keys.C)
             {
-                float _factor = MidiHelpers.Semitones[5];
+                float _factor = semitones[5];
                 R.BaseFrequency *= _factor;
             }
             if (e.KeyCode == Keys.V)
             {
-                float _factor1 = MidiHelpers.Semitones[7];
+                float _factor1 = semitones[7];
                 R.BaseFrequency *= _factor1;
             }
 
@@ -635,7 +653,7 @@ namespace CitySynth.UI
                     if (!R.keys[kv])
                     {
                         int index = -1;
-                        if ((index = R.ke.ConvertAll(i => i[0]).IndexOf(kv)) >= 0)
+                        if ((index = R.ke.ConvertAll<int>(i => i[0]).IndexOf(kv)) >= 0)
                             R.ke.RemoveAt(index);
                         R.ke.Add(new int[] { kv, msg.Velocity });
                     }
@@ -643,7 +661,7 @@ namespace CitySynth.UI
 
                     if (recnotes) rawrec += string.Format("{0}#{1}#down\n", (DateTime.Now - recStarted).Ticks, st);
 
-                    factor = MidiHelpers.Semitones[(R.kb_off + st + (12 * 12)) % 12] * (1 + (R.kb_off + st) / 12);
+                    factor = semitones[(R.kb_off + st + 12 * 12) % 12] * (1 + (R.kb_off + st) / 12);
                     R.Frequency = R.BaseFrequency * factor;
                     if (st != -1)
                         R.Amplitude = 1;
@@ -675,7 +693,7 @@ namespace CitySynth.UI
             int kv = st + 300;
             R.keys[kv] = false;
             int index;
-            if ((index = R.ke.ConvertAll(a => a[0]).IndexOf(kv)) >= 0)
+            if ((index = R.ke.ConvertAll<int>(a => a[0]).IndexOf(kv)) >= 0)
             {
                 R._ke.Add(kv);
                 R.ke[index][1] = 0;
@@ -733,7 +751,7 @@ namespace CitySynth.UI
         private void OnScreenRefresh(object sender, EventArgs e)
         {
             // Update metering levels with RMS audio level from synth engine samples
-            double ave = (Audio.Providers.PolyWaveProvider.meteringSamples.Max() - Audio.Providers.PolyWaveProvider.meteringSamples.Min()) / (2 * ((double)short.MaxValue));
+            double ave = (PolyWaveProvider.meteringSamples.Max() - PolyWaveProvider.meteringSamples.Min()) / (2 * ((double)short.MaxValue));
             double dB = 10 * 0.5 * Math.Log10(Math.Max(ave, Math.Pow(2, -49)));
             dB = Math.Max(dB, -48);
             float meterFloor = 20f;
@@ -825,7 +843,7 @@ namespace CitySynth.UI
             // Prepare graphics to draw audio wavefrom 
             int img_w = waveform_w - 3, img_h = waveform_h - 12;
             float px = 0, py = 0;
-            int len = Audio.Providers.PolyWaveProvider.wavDisplaySamples.Length;
+            int len = PolyWaveProvider.wavDisplaySamples.Length;
             if (waveformPts == null)
                 waveformPts = new PointF[len];
             int scaleFactor = 8;
@@ -833,7 +851,7 @@ namespace CitySynth.UI
             // Map waveform data to bitmap coordinates
             for (int i = 0; i < len; i++)
             {
-                short val = Audio.Providers.PolyWaveProvider.wavDisplaySamples[i];
+                short val = PolyWaveProvider.wavDisplaySamples[i];
                 float y = img_h * scaleFactor / 2 * val / (float)short.MaxValue + waveform_h / 2;
                 float x = 1 + i * (img_w / (float)len);
                 waveformPts[i] = new PointF(x, y);

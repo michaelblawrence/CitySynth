@@ -6,21 +6,6 @@ namespace CitySynth.Helpers
 {
     public static class MidiHelpers
     {
-        public static float[] Semitones => PrecomputeSemitones();
-
-        private static float[] PrecomputeSemitones()
-        {
-            float[] semitones = new float[12];
-            //Semitone factor calcluations
-            semitones[0] = 1;
-            double semrat = Math.Pow(2, 1 / 12.0d);
-            for (int i = 1; i < 12; i++)
-            {
-                semitones[i] = (float)Math.Round(semitones[i - 1] * semrat, 5, MidpointRounding.ToEven);
-            }
-            return semitones;
-        }
-
         /// <summary>
         /// Converts keyboard key press code to frequency of pitch
         /// </summary>
@@ -115,7 +100,7 @@ namespace CitySynth.Helpers
                 //float mult = 1;
                 int key = R.kb_off + st;
                 //if (key > 12) mult = key / 12;
-                float factor = Semitones[(key + 12) % 12] * (float)(Math.Pow(2, (int)Math.Floor(key / 12.0f)));
+                float factor = Form1.semitones[(key + 12) % 12] * (float)(Math.Pow(2, (int)Math.Floor(key / 12.0f)));
                 return a4Freq * factor;
             }
         }
