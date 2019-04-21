@@ -1,4 +1,4 @@
-﻿namespace CitySynth
+﻿namespace CitySynth.UI
 {
     partial class Form1
     {
