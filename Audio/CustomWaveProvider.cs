@@ -4,7 +4,7 @@ using NAudio.Wave;
 using CitySynth.State;
 using CitySynth.Audio.FX;
 
-namespace CitySynth.Audio
+namespace CitySynth.Audio.Providers
 {
     /// <summary>
     /// Single harmonic synth voice wave provider
