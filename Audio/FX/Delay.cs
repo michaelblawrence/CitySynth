@@ -1,5 +1,4 @@
 ﻿using System;
-using CitySynth.State;
 
 namespace CitySynth.Audio
 {
@@ -36,7 +35,7 @@ namespace CitySynth.Audio
         /// <summary>
         /// Sample rate at which to run Delay
         /// </summary>
-        private int sr = R.SampleRate;
+        private int sr;
         /// <summary>
         /// Index to track progress of flutter sine wave modulation
         /// </summary>
@@ -53,11 +52,11 @@ namespace CitySynth.Audio
         /// <summary>
         /// Time legnth of the tape reel
         /// </summary>
-        private double reelSeconds = -1;
+        private double reelSeconds;
 
 
         private float[] savedSamples, saveReturn;
-        public int savedSamplesLength = -1;
+        public int savedSamplesLength { get; private set; } = -1;
         private int savedSamplesIndex = -1;
 
         /// <summary>
@@ -65,26 +64,19 @@ namespace CitySynth.Audio
         /// </summary>
         /// <param name="sr">Sample rate for processing</param>
         /// <param name="len">Maximum length, in samples, of the delay buffer</param>
-        public Delay(int sr, int len) : this(sr, len, 6)
-        {
-
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the Tape Delay class
-        /// </summary>
-        /// <param name="sr">Sample rate for processing</param>
-        /// <param name="len">Maximum length, in samples, of the delay buffer</param>
         /// <param name="scale">Interpolation factor of tape length. Higher the value, lower the write rate to the tape (lower fidelity, more Lo-Fi)</param>
-        public Delay(int sr, int len, int scale)
+        public Delay(int sr, int len, int scale = 6, bool useDefaultFlutter = true)
         {
-            len /= scale;
-            Flutter = 0.001;
-            FlutterSpeed = 6;
-            samples = new float[len];
-            cc = len;
+            cc = len / scale;
+            samples = new float[cc];
             this.sr = sr;
-            reelSeconds = len / (double)sr;
+            reelSeconds = cc / (double)sr;
+
+            if (useDefaultFlutter)
+            {
+                Flutter = 0.001;
+                FlutterSpeed = 6;
+            }
         }
 
         /// <summary>
@@ -105,13 +97,12 @@ namespace CitySynth.Audio
             int index = (int)this.index,
                 previndex = (int)pindex;
             float[] ss = reelSpeed > 1 ?
-                ArrayInterpol(this.index, reelSpeed, s) 
+                ArrayInterpol(this.index, reelSpeed, s)
                 : ArrayInterpol(this.index, s);
             if (previndex != index)
             {
                 samples[(index + 1) % cc] = 0;
             }
-            else previndex = (index - 1 + cc) % cc;
             
             // modulate reelSpeed with flutter parameters
             if (Flutter > 0) reelSpeed = setreelSpeed - setreelSpeed * Flutter * (1+Math.Sin(2 * Math.PI * (intclock / (double)sr) * FlutterSpeed));
@@ -196,9 +187,14 @@ namespace CitySynth.Audio
         public float ReturnSampleF()
         {
             int ii = (int)index;
-            int offset = (int)(2+reelSpeed);
+            int offset = GetSampleOffset();
             double rem = index - ii;
             return (float)((1 - rem) * samples[(ii + offset) % cc] + rem * samples[(ii + offset + 1) % cc]);
+        }
+
+        public int GetSampleOffset()
+        {
+            return (int)(2 + reelSpeed);
         }
 
         /// <summary>
